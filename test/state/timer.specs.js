@@ -1,16 +1,19 @@
 let Timer = require('../../src/state/timer')
 let assert = require('assert')
+let sinon = require('sinon')
 
-describe('Timer', () => {
+describe('Timer', function () {
   let timer
   let timerOptions
   let callbacks
+  let clock
 
   let createTimer = () => {
     timer = new Timer(timerOptions, x => callbacks.push(x))
   }
 
   beforeEach(() => {
+    clock = sinon.useFakeTimers();
     callbacks = []
     timerOptions = { rateMilliseconds: 20, time: 50, countDown: true }
     createTimer()
@@ -18,6 +21,7 @@ describe('Timer', () => {
 
   afterEach(() => {
     timer.pause()
+    clock.restore()
   })
 
   describe('on construction', () => {
@@ -56,34 +60,32 @@ describe('Timer', () => {
   })
 
   describe('start', () => {
-    it('should generate callbacks when counting down', (done) => {
+    it('should generate callbacks when counting down', () => {
       timer.start()
-      setTimeout(() => {
-        assert.equal(callbacks.join(','), '49,48')
-        done()
-      }, 50)
+      clock.tick(50)
+      assert.equal(callbacks.join(','), '49,48')
     })
 
-    it('should generate callbacks when counting up', (done) => {
+    it('should generate callbacks when counting up', () => {
       timerOptions.countDown = false
       createTimer()
 
       timer.start()
-      setTimeout(() => {
-        assert.equal(callbacks.join(','), '51,52')
-        done()
-      }, 50)
+      clock.tick(50)
+
+      assert.equal(callbacks.join(','), '51,52')
     })
   })
 
   describe('pause', () => {
-    it('should stop further callbacks from occuring', (done) => {
+    it('should stop further callbacks from occuring', () => {
       timer.start()
-      setTimeout(() => timer.pause(), 50)
-      setTimeout(() => {
-        assert.equal(callbacks.join(','), '49,48')
-        done()
-      }, 60)
+      clock.tick(50)
+
+      timer.pause()
+      clock.tick(60)
+
+      assert.equal(callbacks.join(','), '49,48')
     })
   })
 
@@ -93,13 +95,14 @@ describe('Timer', () => {
       assert.equal(timer.time, 42)
     })
 
-    it('should set a new time value when the timer is running', (done) => {
+    it('should set a new time value when the timer is running', () => {
       timer.start()
-      setTimeout(() => timer.reset(20), 50)
-      setTimeout(() => {
-        assert.equal(callbacks.join(','), '49,48,19,18')
-        done()
-      }, 90)
+      clock.tick(50)
+
+      timer.reset(20)
+      clock.tick(40)
+
+      assert.equal(callbacks.join(','), '49,48,19,18')
     })
   })
 })
